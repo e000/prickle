@@ -93,18 +93,11 @@ class Nginx(BaseTemplate):
                 "HRULE:0#000000"
             )
         ]
-        
-    def fetch(self):
+    
+    def do_work(self):
         return getPage(
             'http://%s:%i/app_status' % (self.config['host'], self.config['port'])
         )
-    
-    def do_work(self):
-        d = self.fetch()
-        d.addCallback(self.parse) \
-         .addCallback(self.update) \
-        
-        return d
     
     _parseRegexps = re.compile(
         "Active connections:\s+(\d+) \r?\n"
@@ -129,9 +122,11 @@ class Nginx(BaseTemplate):
             
             requests = data.requests - self._lastRequestsNumber
         
-        self._update('N:%i:%i:%i:%i:%s' % (data.active, requests, data.reading, data.writing, data.waiting))
-        
         self._lastRequestsNumber = data.requests
+        
+        return 'N:%i:%i:%i:%i:%s' % (data.active, requests, data.reading, data.writing, data.waiting)
+        
+        
 
 template = Nginx
 

@@ -27,10 +27,12 @@ class BaseTemplate:
     requestsSent = 0
     successfulRequests = 0
     failedRequests = 0
-    doingWork = False
-    waitTillFinish = False
     numGraphs = 0
     sortPriority = 0
+    
+    doingWork = False
+    waitTillFinish = False
+    useDatabase = True
     
     def __init__(self, filename = None, testing = False, id = None, config = None, factory = None):
         """ DO NOT OVERWRITE ME, USE init() instead!!! """
@@ -82,6 +84,9 @@ class BaseTemplate:
         self.requestsSent += 1
         
         d = maybeDeferred(self.do_work) \
+         .addCallback(self.parse) \
+         .addCallback(self.update) \
+         .addCallback(self._update) \
          .addCallback(self.complete) \
          .addErrback(self.failed)
         
@@ -115,6 +120,8 @@ class BaseTemplate:
 
     def _create(self, overwrite = False):
         """ Internal _create call. """
+        if not self.useDatabase:
+            return
         
         if os.path.exists(self.filename) and not overwrite:
             log.msg('Database %r already exists, not overwriting!' % self.filename, logLevel = logging.INFO)

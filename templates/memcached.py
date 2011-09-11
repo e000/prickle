@@ -113,8 +113,8 @@ class Memcached(BaseTemplate):
                 "HRULE:0#000000"
             )
         ]
-        
-    def fetch(self):
+    
+    def do_work(self):
         d = protocol.ClientCreator(reactor, MemCacheProtocol).connectTCP(self.config['host'], self.config['port'])
         d.addCallback(
             lambda proto: proto.stats().addBoth(
@@ -122,18 +122,6 @@ class Memcached(BaseTemplate):
             )
         )
         return d
-        
-    
-    def do_work(self):
-        self.requestsSent += 1
-        d = self.fetch()
-        d.addCallback(self.parse) \
-         .addCallback(self.update) \
-        
-        return d
-    
-    def parse(self, data):
-        return self.dataFactory(data)
     
     def update(self, data):
         if self.successfulRequests == 0:
@@ -154,8 +142,9 @@ class Memcached(BaseTemplate):
         str = ('N%s' % (':%i' * len(self._wantedFields))) % tuple([
             curData[key] for key in self._wantedFields
         ])
-        self._update(str)
         
         self._lastData = data
+
+        return str
 
 template = Memcached

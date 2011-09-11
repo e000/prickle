@@ -17,15 +17,7 @@ import logging
 class Nginx(BaseTemplate):
     interval = 0
     numGraphs = 1
-    
-    def init(self):
-        pass
-    
-    def create(self):
-        pass
-    
-    def _create(self, *a):
-        pass
+    useDatabase = False
         
     def _graph(self):
         for period in self.config['periods']:
