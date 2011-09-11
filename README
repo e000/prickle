@@ -1,0 +1,3 @@
+Prickle is a python implementation of a highly scalable status server.
+
+Prickle uses the twisted framework for asynchronous IO, and RRDtool for data storage and graph generation.
