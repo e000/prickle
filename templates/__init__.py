@@ -1,8 +1,8 @@
 """
-    stats.templates
-    ~~~~~~~~~~~~~~~
+    prickle.templates
+    ~~~~~~~~~~~~~~~~~
     
-    i load templates by template name.
+    i load templates by template name, and hold the TemplateRunner
     
 """
 import os.path

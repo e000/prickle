@@ -1,9 +1,20 @@
+"""
+    prickle.templates.nginx
+    ~~~~~~~~~~~~~~~~~~~~~~~
+    
+    I fetch and create data from properly configured nginx servers.
+    
+    :copyright: (c) 2001 Edgeworth E. Euler
+    :license: BSD!
+"""
+
+
 from collections import namedtuple
-from stats.base import baseTemplate
+from stats.base import BaseTemplate
 from twisted.web.client import getPage
 import re
 
-class Nginx(baseTemplate):
+class Nginx(BaseTemplate):
     dataFactory = namedtuple('nginxStatsTuple', 'active requests reading writing waiting')
     interval = 60
     numGraphs = 2
@@ -89,7 +100,6 @@ class Nginx(baseTemplate):
         )
     
     def do_work(self):
-        self.requestsSent += 1
         d = self.fetch()
         d.addCallback(self.parse) \
          .addCallback(self.update) \

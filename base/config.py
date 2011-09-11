@@ -1,5 +1,5 @@
 """
-    stats.base.config
+    prickle.base.config
     ~~~~~
     We parse and hold configuration options for the entire stats application.
     

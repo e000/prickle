@@ -1,11 +1,10 @@
-from collections import namedtuple
-from stats.base import baseTemplate
+from stats.base import BaseTemplate
 from twisted.internet import reactor, protocol
 from twisted.protocols.memcache import MemCacheProtocol, DEFAULT_PORT
 from twisted.python import log
 import logging
 
-class Memcached(baseTemplate):
+class Memcached(BaseTemplate):
     interval = 60
     numGraphs = 4
     

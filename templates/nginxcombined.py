@@ -1,10 +1,20 @@
+"""
+    prickle.templates.nginxcombined
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+    I combine the data from multiple `prickle.templates.nginx` into one nice graph.
+    
+    :copyright: (c) 2001 Edgeworth E. Euler
+    :license: BSD!
+"""
+
 import rrdtool
-from stats.base import baseTemplate
+from stats.base import BaseTemplate
 from twisted.python import log
 import os.path
 import logging
 
-class Nginx(baseTemplate):
+class Nginx(BaseTemplate):
     interval = 0
     numGraphs = 1
     

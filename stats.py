@@ -1,5 +1,5 @@
 """
-    stats.stats
+    prickle.stats
     ~~~~~~~~~~~
     
     Here, we define the base stats class
@@ -68,9 +68,15 @@ class Stats(object):
     def start_threadpool(self, pool):
         """ Schedules the start of a threadpool, and schedule the stop of it when the reactor shuts down. """
         if not pool.started:
-            reactor.callWhenRunning(pool.start)
-            reactor.addSystemEventTrigger('after', 'shutdown', pool.stop)
-            log.msg('Started threadpool [%s, min=%i, max=%i]' % (pool.name, pool.min, pool.max), logLevel = logging.INFO)
+            reactor.callWhenRunning(self._really_start_threadpool, pool)
+            
+    def _really_start_threadpool(self, pool):
+        """ Starts the threadpool with out scheduleing it via the reactor. """
+        if poolstarted:
+            return
+        
+        reactor.addSystemEventTrigger('after', 'shutdown', pool.stop)
+        log.msg('Started threadpool [%s, min=%i, max=%i]' % (pool.name, pool.min, pool.max), logLevel = logging.INFO)
         
     def run(self, **config_args):
         """
