@@ -1,0 +1,5 @@
+<center>
+    <h1>Graphs!!!</h1>
+    {% for graph in graphs|sort %}
+        <img src="{{ graph_url(graph, period, id) }}" /><br />
+    {% endfor %}
