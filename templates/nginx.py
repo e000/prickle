@@ -4,7 +4,7 @@
     
     I fetch and create data from properly configured nginx servers.
     
-    :copyright: (c) 2001 Edgeworth E. Euler
+    :copyright: (c) 2011 Edgeworth E. Euler
     :license: BSD!
 """
 
@@ -114,7 +114,7 @@ class Nginx(BaseTemplate):
     def update(self, data):
         if self.successfulRequests == 0:
             self._lastRequestsNumber = data.requests
-            return
+            return None
         
         if data.requests < self._lastRequestsNumber:
             requests = data.requests

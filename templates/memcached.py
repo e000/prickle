@@ -1,3 +1,13 @@
+"""
+    prickle.templates.memcached
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+    I combine the data from multiple `prickle.templates.nginx` into one nice graph.
+    
+    :copyright: (c) 2001 Edgeworth E. Euler
+    :license: BSD!
+"""
+
 from stats.base import BaseTemplate
 from twisted.internet import reactor, protocol
 from twisted.protocols.memcache import MemCacheProtocol, DEFAULT_PORT

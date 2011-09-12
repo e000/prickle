@@ -4,7 +4,7 @@
     
     Here, we define the base stats class
     
-    :copyright: (c) 2001 Edgeworth E. Euler
+    :copyright: (c) 2011 Edgeworth E. Euler
     :license: BSD!
 """
 
@@ -28,7 +28,12 @@ class Stats(object):
         graphs = [],
         httpd_port = 8080,
         interface = '0.0.0.0',
-    
+        graph_draw_frequency = dict(
+            hour = 60,
+            day = 300,
+            week = 300*3,
+            default = 60
+        )
     ))
 
     def __init__(self, instance_name):
@@ -49,6 +54,11 @@ class Stats(object):
         assert 'image_path' in c
         # We should probably check if these paths exist and make them as well...
         
+        # Set the default values.
+        graph_draw_frequency = c['graph_draw_frequency']
+        for period, interval in self.default_config['graph_draw_frequency'].iteritems():
+            graph_draw_frequency.setdefault(period, interval)
+        
         # A quick check to make sure that our port is an integer.
         c['httpd_port'] = int(c['httpd_port'])
         
@@ -56,6 +66,7 @@ class Stats(object):
         ids = set()
         for graph in c['graphs']:
             graph.setdefault('config', {})
+            graph['config'].setdefault('periods', [])
             assert graph['id'] not in ids
             ids.add(graph['id'])
             assert(template_exists(graph['template']))
@@ -72,9 +83,9 @@ class Stats(object):
             
     def _really_start_threadpool(self, pool):
         """ Starts the threadpool with out scheduleing it via the reactor. """
-        if poolstarted:
+        if pool.started:
             return
-        
+        pool.start()
         reactor.addSystemEventTrigger('after', 'shutdown', pool.stop)
         log.msg('Started threadpool [%s, min=%i, max=%i]' % (pool.name, pool.min, pool.max), logLevel = logging.INFO)
         

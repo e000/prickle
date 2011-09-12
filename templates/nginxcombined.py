@@ -4,7 +4,7 @@
     
     I combine the data from multiple `prickle.templates.nginx` into one nice graph.
     
-    :copyright: (c) 2001 Edgeworth E. Euler
+    :copyright: (c) 2011 Edgeworth E. Euler
     :license: BSD!
 """
 
@@ -19,21 +19,20 @@ class Nginx(BaseTemplate):
     numGraphs = 1
     useDatabase = False
         
-    def _graph(self):
-        for period in self.config['periods']:
-            fmt_dict = {
-                'period': period,
-                'filename': self.filename
-            }
-            filename = os.path.join(self.factory.stats.config['image_path'], '%s-%s.0.png' % (self.id, period))
-            log.msg('Generating graph %r!' % filename, logLevel = logging.DEBUG)
-            try:
-                rrdtool.graph(
-                    filename,
-                    *list(self.graph(fmt_dict))
-                )
-            except:
-                log.err()
+    def _graph(self, period):
+        fmt_dict = {
+            'period': period,
+            'filename': self.filename
+        }
+        filename = os.path.join(self.factory.stats.config['image_path'], '%s-%s.0.png' % (self.id, period))
+        log.msg('Generating graph %r!' % filename, logLevel = logging.DEBUG)
+        try:
+            rrdtool.graph(
+                filename,
+                *list(self.graph(fmt_dict))
+            )
+        except:
+            log.err()
                 
     def graph(self, fmt_dict):
         db = self.factory.make_filename

@@ -4,7 +4,7 @@
     
     The base template class is here.
     
-    :copyright: (c) 2001 Edgeworth E. Euler
+    :copyright: (c) 2011 Edgeworth E. Euler
     :license: BSD!
 """
 
@@ -16,6 +16,7 @@ import logging
 from twisted.internet.defer import maybeDeferred
 from twisted.internet.threads import deferToThreadPool
 from twisted.internet import reactor
+import time
 
 class BaseTemplate:
     """
@@ -110,6 +111,9 @@ class BaseTemplate:
             Internal update call, takes data returned by update() and updates the database
             using the threadpool.
         """
+        if not data:
+            return None
+        
         return deferToThreadPool(
             reactor, self.factory.stats.rrd_threadpool, rrdtool.update, self.filename, data
         )
@@ -152,31 +156,33 @@ class BaseTemplate:
         """
         raise NotImplementedError()
 
-    def _graph(self):
+    def _graph(self, period):
         """
             Internal call to _graph, I deal with the stuff that gets sent from graph(),
             I can be overridden if more custom graphing behavior is required.
             
-            I am called every `config.graph_interval` seconds.
+            I am called every every `config.graph_draw_frequency[period]` seconds.
         """
+
+        fmt_dict = {
+            'period': period,
+            'filename': self.filename,
+            'id': self.id,
+            'timestamp': int(time.time()),
+            'template': self.template,
+        }
         
-        for period in self.config['periods']:
-            fmt_dict = {
-                'period': period,
-                'filename': self.filename,
-                'id': self.id
-            }
-            for i, graph in enumerate(self.graph()):
-                filename = os.path.join(self.factory.stats.config['image_path'], '%s-%s.%i.png' % (self.id, period, i))
-                log.msg('Generating graph %r!' % filename, logLevel = logging.DEBUG)
-                try:
-                    rrdtool.graph(
-                        filename,
-                        *[ln % fmt_dict for ln in graph]
-                    )
-                except:
-                    log.err()
-        
+        for i, graph in enumerate(self.graph()):
+            filename = os.path.join(self.factory.stats.config['image_path'], '%s-%s.%i.png' % (self.id, period, i))
+            log.msg('Generating graph %r!' % filename, logLevel = logging.DEBUG)
+            try:
+                rrdtool.graph(
+                    filename,
+                    *[ln % fmt_dict for ln in graph]
+                )
+            except:
+                log.err()
+    
 
     def run(self):
         """
