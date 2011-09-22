@@ -14,21 +14,34 @@ from twisted.python import log
 from twisted.internet import reactor
 import logging
 import time
+import operator
 
-_templates = {}
 
+templates_dict = {}
+templates = []
+
+def _make_aliases(template):
+    aliases = getattr(template, 'aliases', range(template.numGraphs))
+    
+    template.aliases = dict(enumerate(aliases))
+    template.aliases_reversed = dict((v, k) for (k, v) in enumerate(aliases))
+    
 
 def load_template(name):
     """ Attempts to load a template by name """
-    if name in _templates:
-        return _templates[name].template
+    if name in templates_dict:
+        return templates_dict[name]
         
     else:
         fp, pathname, description = imp.find_module(name, __path__)
         try:
-            template = _templates[name] = imp.load_module(name, fp, pathname, description)
-            template.template.template = name
-            return template.template
+            template = templates_dict[name] = imp.load_module(name, fp, pathname, description).template
+            template.template = name
+            templates.append(template)
+            templates.sort(key=operator.attrgetter('template'))
+            _make_aliases(template)
+            
+            return template
         
         finally:
             fp.close()
@@ -89,7 +102,7 @@ class TemplateRunner(object):
             lc = LoopingCall(self.render_graphs, periods)
             self.loopingCalls.append(lc)
             log.msg("Starting graphing_loop for periods=%r, interval=%i" % (periods, interval), logLevel = logging.INFO)
-            reactor.callLater(0, lc.start, interval)
+            lc.start(interval)
         
         log.msg("Started %i LoopingCalls to graph with." % len(self.loopingCalls), logLevel = logging.INFO)
             
@@ -127,7 +140,6 @@ class TemplateRunner(object):
         """
         
         threadPool = self.stats.rrd_threadpool
-        print periods
         # Determine which templates need to run.
         jobQueue = []
         for template in self.stats.active_graphs.itervalues():
@@ -155,17 +167,18 @@ class TemplateRunner(object):
         
         def workDone(res):
             log.msg('Generated graphs for periods=%r in  %.3f seconds.' % (periods, time.time() - t), logLevel = logging.INFO)
-
             return res
         
         d = DeferredList([
             deferToThreadPool(reactor, threadPool, self._do_graph_render, template._graph, t_periodsToRun) for template, t_periodsToRun in jobQueue
-        ], consumeErrors = True)
+        ], consumeErrors = False)
+        
         
         d.addCallback(workDone)
+        d.addErrback(workDone)
         return d
 
             
     
     
-__all__ = ['TemplateRunner', 'load_template', 'template_exists']
+__all__ = ['TemplateRunner', 'load_template', 'template_exists', 'templates', 'templates_dict']

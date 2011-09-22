@@ -18,6 +18,7 @@ class Nginx(BaseTemplate):
     dataFactory = namedtuple('nginxStatsTuple', 'active requests reading writing waiting')
     interval = 60
     numGraphs = 2
+    aliases = ['requests', 'connections']
     
     def init(self):
         self.config.setdefault('port', 80)

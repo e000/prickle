@@ -42,7 +42,7 @@ class Stats(object):
         self.flask_app = WebApp(self)
         self.template_runner = TemplateRunner(self)
         self.active_graphs = dict()
-        self.rrd_threadpool = ThreadPool(minthreads=5, maxthreads=20, name = 'rrd_threadpool')
+        self.rrd_threadpool = ThreadPool(minthreads=2, maxthreads=2, name = 'rrd_threadpool')
         self.wsgi_threadpool = ThreadPool(minthreads = 1, maxthreads=5, name = 'wsgi_threadpool')
     
     def validate_config(self):

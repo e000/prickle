@@ -17,6 +17,7 @@ import logging
 class Memcached(BaseTemplate):
     interval = 60
     numGraphs = 4
+    aliases = ['requests', 'memory', 'connections', 'io']
     
     def init(self):
         self.config.setdefault('port', DEFAULT_PORT)

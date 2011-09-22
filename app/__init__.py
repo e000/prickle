@@ -1,6 +1,6 @@
 from twisted.web import static, server, wsgi, resource
 from twisted.internet import reactor
-from flask import Flask, render_template, url_for
+from flask import Flask, render_template, url_for, abort, redirect, request
 
 class Root(resource.Resource):
     """ A hackish way to allow us to put children onto a wsgi resource!!! """
@@ -21,6 +21,7 @@ class WebApp:
     
     def _create_app(self):
         """ Here we create and return the wsgi application, scoping it to this little namespace """
+        from stats.templates import templates, templates_dict
         app = Flask(__name__)
         app.config.update(self.stats.config.get('flask_config', {}))
         
@@ -40,16 +41,41 @@ class WebApp:
         
         @app.route('/')
         def index():
-            return render_template('index.html', graphs = graphs)
+            return render_template('index.html', templates = templates)
+        
+        
+        @app.route('/route', methods = ['POST'])
+        def route():
+            try:
+                template_name, alias = request.form['application'].split('/', 1)
+                period = request.form['period']
+                if not template_name in templates_dict:
+                    abort(404)
+                if not alias in templates_dict[template_name].aliases_reversed:
+
+                    abort(404)
+                
+                return redirect(url_for('filter', template_name = template_name, period = period, id = alias))
+                
+            except:
+                raise
     
-        @app.route('/<template>')
-        @app.route('/<template>/<period>')
-        @app.route('/<template>/<period>/<int:id>')
-        @app.route('/<template>/<int:id>')
-        def filter(template, period='hour', id = 0):
-            _graphs = (graph for graph in graphs.values() if graph.template == template and period in graph.config['periods'])
-            print 'qq'
-            return render_template('index.html', graphs = _graphs, period = period, id = id)
+        @app.route('/<template_name>')
+        @app.route('/<template_name>/<period>')
+        @app.route('/<template_name>/<period>/<id>')
+        @app.route('/<template_name>/<id>')
+        def filter(template_name, period='hour', id = 0):
+            if not template_name in templates_dict:
+                abort(404)
+            template = templates_dict[template_name]
+            if not id in template.aliases_reversed:
+                abort(404)
+            alias = id
+            id = template.aliases_reversed[id]
+            
+            _graphs = (graph for graph in graphs.values() if graph.template == template_name and period in graph.config['periods'])
+            
+            return render_template('graph.html', graphs = _graphs, period = period, id = id, template=template, templates = templates, alias = alias)
     
         
         return app

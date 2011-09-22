@@ -18,6 +18,7 @@ class Nginx(BaseTemplate):
     interval = 0
     numGraphs = 1
     useDatabase = False
+    aliases = ['requests']
         
     def _graph(self, period):
         fmt_dict = {

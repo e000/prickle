@@ -2,7 +2,7 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Prickle Stats</title>
+		<title>{{ template.template }} &raquo; {{ alias }} &raquo; {{ period }}</title>
 		<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
 		<style>
 			body
@@ -84,28 +84,32 @@
 	</head>
 	<body>
 		<div class="wrapper">
-			<h1>Choose a metric!</h1>
+			<h1>{{ template.template }} <span>&raquo;</span> {{ alias }} <span>&raquo;</span> {{ period }}</h1>
 			<div class="navbar">
 				<form method="post" action="/route">
 					<select name="application">
                                                 {% for _template in templates %}
 						<optgroup label="{{ _template.template }}">
                                                     {% for aid, _alias in _template.aliases.iteritems() %}
-							<option value="{{ _template.template }}/{{ _alias }}">{{ _alias }}</option>
+							<option value="{{ _template.template }}/{{ _alias }}"{% if aid == id and template == _template %} selected="selected"{% endif %}>{{ _alias }}</option>
                                                     {% endfor %}
                                                 {% endfor %}
 					</select>
 					<span class="arrow">&raquo;</span>
 					<select name="period">
                                                 {% for _period in ('hour', 'day', 'week') %}
-						<option value="{{_period}}">{{_period}}</option>
+						<option value="{{_period}}"{% if period == _period %} selected="selected"{% endif %}>{{_period}}</option>
 						{% endfor %}
 					</select>
 					<span class="arrow">&raquo;</span>
 					<button type="submit" name="submit">Go!</button>
 				</form>
 			</div>
-
+			<div class="stats">
+                            {% for graph in graphs|sort %}
+                                <img src="{{ graph_url(graph, period, id) }}" />
+                            {% endfor %}
+			</div>
 		</div>
 	</body>
 </html>
