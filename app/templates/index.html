@@ -4,83 +4,7 @@
 	<head>
 		<title>Prickle Stats</title>
 		<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
-		<style>
-			body
-			{
-				background-image: url(http://i.imgur.com/uZIFj.jpg); background-attachment: fixed; background-origin: initial; background-clip: initial; background-color: initial; background-position: initial initial; background-repeat: initial initial; 
-			}
-			
-			.wrapper
-			{
-				width: 876px;
-				padding: 12px;
-				margin-top: 24px;
-				border-radius: 25px;
-				-moz-border-radius: 25px;
-				text-align: center;
-				background-color: rgba(0, 0, 0, 0.75);
-				margin: 0px auto;
-				color: white;
-				box-shadow: 0px 0px 5px #000000;
-			}
-
-			h1, h2, h3, h4, h5, h6, h7
-			{
-				margin: 0px;
-				padding: 0px;
-			}
-
-			h1
-			{
-				font-size: 34px;
-				text-shadow: 0px 0px 9px #989898;
-			}
-                        h1 span {
-                            font-weight: lighter;
-                        }
-
-			.navbar
-			{
-				margin: 17px 0px;
-				background-color: rgba(255, 255, 255, .8);
-				border-radius: 14px;
-				-moz-border-radius: 14px;
-				padding: 5px;
-                                width:50%;
-                                margin-left: auto;
-                                margin-right: auto;
-				color: black;
-				text-align: center;
-				box-shadow: 0px 0px 15px #636363;
-			}
-
-			input, select, textarea, button
-			{
-				background-color: rgba(245, 245, 245, .8);
-				border: 1px solid black;
-				font-size: 17px;
-			}
-
-			.wrapper, input, select, textarea, button
-			{
-				font-family: "Open Sans", Verdana, Arial;
-			}
-
-			.arrow, .label
-			{
-				margin: 0px 6px;
-				font-size: 18px;
-				font-weight: bold;
-			}
-
-			.stats img
-			{
-				/*border: 1px solid black;*/
-				display: block;
-				margin: 20px auto;
-				box-shadow: 0px 0px 15px #989898;
-			}
-		</style>
+		<link href="{{ url_for('static', filename = 'style.css' )}}" rel = 'stylesheet' type='text/css' />
 	</head>
 	<body>
 		<div class="wrapper">
@@ -105,7 +29,9 @@
 					<button type="submit" name="submit">Go!</button>
 				</form>
 			</div>
-
+                        <div class="stats">
+                            <p>edrama.us uses the prickle stats framework to monitor its services. </p>
+                        </div>
 		</div>
 	</body>
 </html>

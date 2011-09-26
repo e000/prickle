@@ -9,13 +9,13 @@
 """
 
 from twisted.internet.task import LoopingCall
-import rrdtool
 import os.path
 from twisted.python import log
 import logging
-from twisted.internet.defer import maybeDeferred
+from twisted.internet.defer import maybeDeferred, inlineCallbacks, DeferredList
 from twisted.internet.threads import deferToThreadPool
 from twisted.internet import reactor
+import stats.proc_rrd as rrdtool
 import time
 
 class BaseTemplate:
@@ -114,14 +114,13 @@ class BaseTemplate:
         if not data:
             return None
         
-        return deferToThreadPool(
-            reactor, self.factory.stats.rrd_threadpool, rrdtool.update, self.filename, data
-        )
+        return rrdtool.update(self.filename, data)
 
     def create(self):
         """ Return an iterable of strings that shall be used to create the database """
         raise NotImplemented()
 
+    @inlineCallbacks
     def _create(self, overwrite = False):
         """ Internal _create call. """
         if not self.useDatabase:
@@ -137,8 +136,7 @@ class BaseTemplate:
             '2interval': self.interval*2,
         }
         
-        # Synchronously create the database, this should ONLY be called when prickle is starting up
-        rrdtool.create(self.filename, *[ln % fmt_dict for ln in self.create()])
+        yield rrdtool.create(self.filename, *[ln % fmt_dict for ln in self.create()])
         log.msg('Database %r created successfully!' % self.filename, logLevel = logging.INFO)
     
     def parse(self, data):
@@ -172,17 +170,31 @@ class BaseTemplate:
             'template': self.template,
         }
         
+        defers = []
+        
         for i, graph in enumerate(self.graph()):
-            filename = os.path.join(self.factory.stats.config['image_path'], '%s-%s.%i.png' % (self.id, period, i))
-            log.msg('Generating graph %r!' % filename, logLevel = logging.DEBUG)
-            try:
+            filename = '%s-%s.%i.png' % (self.id, period, i)
+            defers.append(
                 rrdtool.graph(
-                    filename,
+                    os.path.join(self.factory.stats.config['image_path'], filename),
                     *[ln % fmt_dict for ln in graph]
+                ).addErrback(
+                    self._graphError, filename
+                ).addCallback(
+                    self._graphSuccess, filename
                 )
-            except:
-                log.err()
+            )
+            
+        return DeferredList(defers, consumeErrors = True)
+     
+    def _graphError(self, err, filename):
+        log.msg("Failed to generate graph %r!" % graph)
+        log.err(err)
     
+    def _graphSuccess(self, res, filename):
+        ct = time.time()
+        log.msg('Generated graph %r!' % (filename), logLevel = logging.DEBUG)
+        self.factory.stats.last_draw_timestamp[filename] = int(ct)
 
     def run(self):
         """

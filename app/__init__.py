@@ -23,14 +23,26 @@ class WebApp:
         """ Here we create and return the wsgi application, scoping it to this little namespace """
         from stats.templates import templates, templates_dict
         app = Flask(__name__)
-        app.config.update(self.stats.config.get('flask_config', {}))
         
+        app.config.update(self.stats.config.get('flask_config', {})) # propegate the app's config to Flask
+        
+        # We use this to compress html output, to save BW.
+        app.jinja_options['extensions'].append('stats.app.jinja2htmlcompress.HTMLCompress')
+        app.create_jinja_environment()
+        
+        # Local variables.
         stats = self.stats
         config = stats.config
         graphs = stats.active_graphs
         
+        def graph_url(graph, period, id = 0):
+            """ Generates an image URL for the graph, and appends a param to it that should invalidate the cache upon graph update. """
+            filename = '%s-%s.%i.png' % (graph.id, period, id or 0)
+            return url_for('graph', filename = filename, _ = stats.last_draw_timestamp.get(filename, -1))
+                               
+        
         app.jinja_env.globals.update(dict(
-            graph_url = lambda graph, period, id = 0: url_for('graph', filename = '%s-%s.%i.png' % (graph.id, period, id or 0))
+            graph_url = graph_url
             
         ))       
         
@@ -52,7 +64,6 @@ class WebApp:
                 if not template_name in templates_dict:
                     abort(404)
                 if not alias in templates_dict[template_name].aliases_reversed:
-
                     abort(404)
                 
                 return redirect(url_for('filter', template_name = template_name, period = period, id = alias))
@@ -61,8 +72,7 @@ class WebApp:
                 raise
     
         @app.route('/<template_name>')
-        @app.route('/<template_name>/<period>')
-        @app.route('/<template_name>/<period>/<id>')
+        @app.route('/<template_name>/<id>/<period>')
         @app.route('/<template_name>/<id>')
         def filter(template_name, period='hour', id = 0):
             if not template_name in templates_dict:

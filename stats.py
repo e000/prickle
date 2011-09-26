@@ -33,7 +33,9 @@ class Stats(object):
             day = 300,
             week = 300*3,
             default = 60
-        )
+        ),
+        wsgi_min_threads = 1,
+        wsgi_max_threads = 5
     ))
 
     def __init__(self, instance_name):
@@ -42,8 +44,8 @@ class Stats(object):
         self.flask_app = WebApp(self)
         self.template_runner = TemplateRunner(self)
         self.active_graphs = dict()
-        self.rrd_threadpool = ThreadPool(minthreads=2, maxthreads=2, name = 'rrd_threadpool')
-        self.wsgi_threadpool = ThreadPool(minthreads = 1, maxthreads=5, name = 'wsgi_threadpool')
+        self.last_draw_timestamp = dict()
+        self.wsgi_threadpool = ThreadPool(minthreads = self.config['wsgi_min_threads'], maxthreads=self.config['wsgi_max_threads'], name = 'wsgi_threadpool')
     
     def validate_config(self):
         """ Validates the loaded configuration. """
@@ -105,7 +107,7 @@ class Stats(object):
         self.validate_config()
         
         # Schedule the start of the threadpools.
-        self.start_threadpool(self.rrd_threadpool)
+        self.wsgi_threadpool.adjustPoolsize(minthreads = self.config['wsgi_min_threads'], maxthreads=self.config['wsgi_max_threads'])
         self.start_threadpool(self.wsgi_threadpool)
         
         # Start the web server and the template runner.

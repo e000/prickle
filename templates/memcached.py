@@ -60,14 +60,14 @@ class Memcached(BaseTemplate):
                 "DEF:get_hits=%(filename)s:get_hits:AVERAGE",
                 "DEF:get_missesp=%(filename)s:get_misses:AVERAGE",
                 "CDEF:get_misses=get_missesp,-1,*",
-                "AREA:get_misses#FF0000:Cache Misses",
-                "GPRINT:get_missesp:MAX:  Max\\: %%7.1lf %%S",
-                "GPRINT:get_missesp:AVERAGE: Avg\\: %%7.1lf %%S",
-                "GPRINT:get_missesp:LAST: Current\\: %%7.1lf %%S miss/sec\\r",
                 "AREA:get_hits#BFFF00:Cache Hits",
                 "GPRINT:get_hits:MAX:  Max\\: %%7.1lf %%S",
                 "GPRINT:get_hits:AVERAGE: Avg\\: %%7.1lf %%S",
                 "GPRINT:get_hits:LAST: Current\\: %%7.1lf %%S hits/sec\\r",
+                "AREA:get_misses#FF0000:Cache Misses",
+                "GPRINT:get_missesp:MAX:  Max\\: %%7.1lf %%S",
+                "GPRINT:get_missesp:AVERAGE: Avg\\: %%7.1lf %%S",
+                "GPRINT:get_missesp:LAST: Current\\: %%7.1lf %%S miss/sec\\r",
                 "HRULE:0#000000"
             ), (
                 "-s -1%(period)s",
@@ -140,6 +140,7 @@ class Memcached(BaseTemplate):
             return
         
         curData = {}
+        invalid = False
         for key in self._wantedFields:
             if key in self._gaugeFields:
                 curData[key] = data[key]
@@ -147,15 +148,17 @@ class Memcached(BaseTemplate):
                 d = data[key] - self._lastData[key]
                 if d < 0:
                     log.msg('[%s] field [%s] returned negative delta, possible server restart?' % (self.id, key), logLevel = logging.INFO)
-                    return
+                    invalid = True
+                    break
                 curData[key] = d
+                
+        self._lastData = data
         
-        str = ('N%s' % (':%i' * len(self._wantedFields))) % tuple([
+        if invalid:
+            return
+
+        return ('N%s' % (':%i' * len(self._wantedFields))) % tuple([
             curData[key] for key in self._wantedFields
         ])
-        
-        self._lastData = data
-
-        return str
 
 template = Memcached

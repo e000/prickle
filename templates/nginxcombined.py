@@ -8,10 +8,12 @@
     :license: BSD!
 """
 
-import rrdtool
+import stats.proc_rrd as rrdtool
 from stats.base import BaseTemplate
 from twisted.python import log
+from twisted.internet.defer import inlineCallbacks
 import os.path
+import time
 import logging
 
 class Nginx(BaseTemplate):
@@ -19,19 +21,22 @@ class Nginx(BaseTemplate):
     numGraphs = 1
     useDatabase = False
     aliases = ['requests']
-        
+    
+    @inlineCallbacks
     def _graph(self, period):
         fmt_dict = {
             'period': period,
             'filename': self.filename
         }
-        filename = os.path.join(self.factory.stats.config['image_path'], '%s-%s.0.png' % (self.id, period))
+        filename = '%s-%s.0.png' % (self.id, period)
+        
         log.msg('Generating graph %r!' % filename, logLevel = logging.DEBUG)
         try:
-            rrdtool.graph(
-                filename,
+            yield rrdtool.graph(
+                os.path.join(self.factory.stats.config['image_path'], filename),
                 *list(self.graph(fmt_dict))
             )
+            self.factory.stats.last_draw_timestamp[filename] = int(time.time())
         except:
             log.err()
                 

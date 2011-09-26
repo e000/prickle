@@ -115,12 +115,11 @@ class Nginx(BaseTemplate):
     def update(self, data):
         if self.successfulRequests == 0:
             self._lastRequestsNumber = data.requests
-            return None
+            return
         
         if data.requests < self._lastRequestsNumber:
             requests = data.requests
         else:
-            
             requests = data.requests - self._lastRequestsNumber
         
         self._lastRequestsNumber = data.requests
@@ -135,8 +134,8 @@ import unittest
 
 class TestParser(unittest.TestCase):
     def setUp(self):
-        self.toParse = 'Active connections: 4 \nserver accepts handled requests\n 1112965 1112965 1112965 \nReading: 0 Writing: 4 Waiting: 0 \n'
-        self.expectedResult = Nginx.dataFactory(active=4, requests=1112965, reading=0, writing=4, waiting=0)
+        self.toParse = 'Active connections: 4 \nserver accepts handled requests\n 1112965 1112965 1112965 \nReading: 0 Writing: 4 Waiting: 5 \n'
+        self.expectedResult = Nginx.dataFactory(active=4, requests=1112965, reading=0, writing=4, waiting=5)
         
     def test_parser(self):
         cls = Nginx(testing = True)

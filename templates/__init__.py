@@ -8,8 +8,7 @@
 import os.path
 import imp
 from twisted.internet.task import LoopingCall
-from twisted.internet.threads import deferToThreadPool
-from twisted.internet.defer import DeferredList
+from twisted.internet.defer import DeferredList, maybeDeferred, inlineCallbacks
 from twisted.python import log
 from twisted.internet import reactor
 import logging
@@ -122,14 +121,14 @@ class TemplateRunner(object):
     
     def _do_graph_render(self, callback, periods):
         """ Iternal method to render graphs """
-        for period in periods:
-            try:
-                callback(period)
-            except:
-                log.msg("Error generating graphs, period=%s" % period, logLevel = logging.ERROR)
-                log.err()
-            
         
+        return DeferredList([
+            maybeDeferred(callback, period).addErrback(self._graph_error, period) for period in periods
+        ], consumeErrors = True)
+            
+    def _graph_error(self, err, period):
+        log.msg("Error generating graphs, period=%s" % period, logLevel = logging.ERROR)
+        log.err(err)
     
     
     def render_graphs(self, periods):
@@ -139,8 +138,6 @@ class TemplateRunner(object):
             been successfully rendered.
         """
         
-        threadPool = self.stats.rrd_threadpool
-        # Determine which templates need to run.
         jobQueue = []
         for template in self.stats.active_graphs.itervalues():
             t_periodsToRun = []
@@ -170,12 +167,11 @@ class TemplateRunner(object):
             return res
         
         d = DeferredList([
-            deferToThreadPool(reactor, threadPool, self._do_graph_render, template._graph, t_periodsToRun) for template, t_periodsToRun in jobQueue
-        ], consumeErrors = False)
+            self._do_graph_render(template._graph, t_periodsToRun) for template, t_periodsToRun in jobQueue
+        ], consumeErrors = True)
         
         
         d.addCallback(workDone)
-        d.addErrback(workDone)
         return d
 
             
