@@ -3,9 +3,15 @@ from twisted.protocols.policies import TimeoutMixin
 from twisted.python import log
 from qbuf.twisted_support import MultiBufferer, MODE_STATEFUL
 from twisted.internet.protocol import Protocol
-from txmysql import util, error
+from . import util, error
 import struct
 from hashlib import sha1
+try:
+    import hashlib
+    sha_new = lambda *args, **kwargs: hashlib.new("sha1", *args, **kwargs)
+except ImportError:
+    import sha
+    sha_new = sha.new
 import sys
 #import pprint
 import datetime
@@ -21,6 +27,25 @@ typemap = {
     0x0c: 8
 }
 
+LONG_PASSWORD = 1
+FOUND_ROWS = 1 << 1
+LONG_FLAG = 1 << 2
+CONNECT_WITH_DB = 1 << 3
+NO_SCHEMA = 1 << 4
+COMPRESS = 1 << 5
+ODBC = 1 << 6
+LOCAL_FILES = 1 << 7
+IGNORE_SPACE = 1 << 8
+PROTOCOL_41 = 1 << 9
+INTERACTIVE = 1 << 10
+SSL = 1 << 11
+IGNORE_SIGPIPE = 1 << 12
+TRANSACTIONS  = 1 << 13
+SECURE_CONNECTION = 1 << 15
+MULTI_STATEMENTS = 1 << 16
+MULTI_RESULTS = 1 << 17
+CAPABILITIES = LONG_PASSWORD|PROTOCOL_41|SECURE_CONNECTION
+
 def _xor(message1, message2):
         length = len(message1)
         result = ''
@@ -28,6 +53,39 @@ def _xor(message1, message2):
                 x = (struct.unpack('B', message1[i:i+1])[0] ^ struct.unpack('B', message2[i:i+1])[0])
                 result += struct.pack('B', x)
         return result
+
+def pack_int24(n):
+    return struct.pack('BBB', n&0xFF, (n>>8)&0xFF, (n>>16)&0xFF)
+
+def int2byte(i):
+    return struct.pack("!B", i)
+
+def byte2int(b):
+    if isinstance(b, int):
+        return b
+    else:
+        return struct.unpack("!B", b)[0]
+        
+def _scramble(password, message):
+    if password == None or len(password) == 0:
+        return int2byte(0)
+    #if DEBUG: print 'password=' + password
+    stage1 = sha_new(password).digest()
+    stage2 = sha_new(stage1).digest()
+    s = sha_new()
+    s.update(message)
+    s.update(stage2)
+    result = s.digest()
+    return _my_crypt(result, stage1)
+
+def _my_crypt(message1, message2):
+    length = len(message1)
+    result = struct.pack('B', length)
+    for i in xrange(length):
+        x = (struct.unpack('B', message1[i:i+1])[0] ^ \
+             struct.unpack('B', message2[i:i+1])[0])
+        result += struct.pack('B', x)
+    return result
 
 def dump_packet(data):
         def is_ascii(data):
@@ -255,29 +313,63 @@ class MySQLProtocol(MultiBufferer, TimeoutMixin):
     @operation
     def do_handshake(self):
         self.resetTimeout()
-        t = yield self.read_header()
-        protocol_version, = yield t.unpack('<B')
-        yield t.read_cstring() # server_version
-        thread_id, scramble_buf = yield t.unpack('<I8sx')
-        capabilities, language, status = yield t.unpack('<HBH')
-        #print hex(capabilities)
-        capabilities ^= capabilities & 32
-        capabilities |= 0x30000
+        
+        pkt_header = yield self.read(4)
+        
+        pkt_len_bin = pkt_header[:3]
+        pkt_num = byte2int(pkt_header[3])
+        
+        bin_length = pkt_len_bin + int2byte(0)
+        
+        bytes_to_read = struct.unpack('<I', bin_length)[0]
+        self.sequence += 1
+        data = yield self.read(bytes_to_read)
+        
+        i = 0
+        charset = 'latin1'
+        charset_id = 8
+        
+        protocol_version = byte2int(data[i:i+1])
+        i += 1
+        
+        server_end = data.find(int2byte(0), i)
+        server_version = data[i:server_end]
+        
+        i = server_end + 1
+        
+        thread_id = struct.unpack('<h', data[i:i+2])
+        
+        i += 4
+        salt = data[i:i+8]
+        
+        i += 9
+        
+        if len(data) >= i + 1:
+            i += 1
+
+        capabilities = struct.unpack('<h', data[i:i+2])[0]
+        
+        i += 1
+        server_language = byte2int(data[i:i+1])
+        
+        i += 16
+        if len(data) >= i+12-1:
+            rest_salt = data[i:i+12]
+            salt += rest_salt       
+        
+        data_init = struct.pack('<i', CAPABILITIES) + struct.pack("<I", 1) + \
+                     int2byte(charset_id) + int2byte(0)*23
+        
+        datar = data_init + self.username + int2byte(0) + _scramble(self.password.encode(charset), salt)
+
         if self.database:
-            capabilities |= 1 << 3 # CLIENT_CONNECT_WITH_DB
-        yield t.read(13)
-        scramble_buf += yield t.read(12) # The last byte is a NUL
-        yield t.read(1)
-
-        scramble_response = _xor(sha1(scramble_buf+sha1(sha1(self.password).digest()).digest()).digest(), sha1(self.password).digest())
-
-        with util.DataPacker(self) as p:
-            p.pack('<IIB23x', capabilities, 2**23, language)
-            p.write_cstring(self.username)
-            p.write_lcs(scramble_response)
-            if self.database:
-                p.write_cstring(self.database)
-
+            datar += self.database.encode(charset) + int2byte(0)
+            
+        datar = pack_int24(len(datar)) + int2byte(self.sequence) + datar
+        
+        self.transport.write(datar)
+        self.sequence += 1
+        
         result = yield self.read_result()
         defer.returnValue(result)
     

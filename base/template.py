@@ -136,7 +136,7 @@ class BaseTemplate:
             '2interval': self.interval*2,
         }
         
-        yield rrdtool.create(self.filename, *[ln % fmt_dict for ln in self.create()])
+        res = yield rrdtool.create(self.filename, *[ln % fmt_dict for ln in self.create()])
         log.msg('Database %r created successfully!' % self.filename, logLevel = logging.INFO)
     
     def parse(self, data):
@@ -145,7 +145,10 @@ class BaseTemplate:
             Will attempt to use dataFactory to parse the data by default.
             Override if what you need to do cannot be done in dataFactory.
         """
-        return self.dataFactory(data)
+        if self.dataFactory:
+            return self.dataFactory(data)
+        else:
+            return data
         
     def graph(self):
         """

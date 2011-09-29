@@ -1,7 +1,7 @@
 from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.internet import reactor, defer
 from protocol import MySQLProtocol # One instance of this per actual connection to MySQL
-from txmysql import error
+from . import error
 from twisted.python.failure import Failure
 from twisted.python import log
 import pprint

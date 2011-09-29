@@ -2,7 +2,7 @@
     prickle.templates.nginxcombined
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
-    I combine the data from multiple `prickle.templates.nginx` into one nice graph.
+    I poll memcached servers and check their statuses.
     
     :copyright: (c) 2011 Edgeworth E. Euler
     :license: BSD!
@@ -49,7 +49,7 @@ class Nginx(BaseTemplate):
         yield "Combined requests on [%s]" % ', '.join(self.config['ids'])
         yield "--lazy"
         yield "-h"
-        yield "150"
+        yield "300"
         yield "-w"
         yield "700"
         yield "-l 0"
